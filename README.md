@@ -1,6 +1,4 @@
-# elrond-rust-sc-incr
-
-Sample Elrond smart contracts.
+# Sample Elrond smart contracts.
 
 
 ## Non-payable
