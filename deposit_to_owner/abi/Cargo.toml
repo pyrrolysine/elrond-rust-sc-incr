@@ -1,0 +1,15 @@
+[package]
+name = "contract-abi"
+version = "0.0.0"
+authors = [ "", ]
+edition = "2018"
+publish = false
+
+[dependencies.contract]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.18.2"
+
+[dependencies.elrond-wasm-debug]
+version = "0.18.2"
