@@ -21,10 +21,10 @@ You increase the counter by calling _inc_ and fetch the current value with _get_
 A contract which can be paid eGLD.
 
 ### **deposit_to_owner**
-Send any received eGLD amount to its owner.
+Sends any received eGLD amount to its owner.
 
 ### **sc-bid-owner**
-Allow the owner to sequence NFT auctions and accept bids.
+Allows the owner to sequence NFT auctions and accept bids.
 
 ### **sc-log-mint-request**
 Logs addresses and IDs of tokens to be minted later.
