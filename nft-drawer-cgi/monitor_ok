@@ -1,0 +1,87 @@
+#!/usr/bin/python3
+
+import os
+
+print('Content-Type: text/html\n')
+
+query = os.getenv('QUERY_STRING') or ''
+query = {k: v for k, v in map(lambda kv: kv.split('=') if '=' in kv else [kv, ''], query.split('&'))}
+
+print('''
+<html>
+    <title>Transaction</title>
+    <meta charset="utf-8"></meta>
+    <body>
+    </body>
+    <script>
+        const fetch = (callback, url) => {
+            const xhr = new XMLHttpRequest()
+            xhr.onreadystatechange = () => {
+                if(xhr.readyState == 4)
+                {
+                    // console.log(xhr.responseText)
+                    callback(xhr.responseText)
+                }
+                else
+                {
+                    callback("{}")
+                }
+            }
+            xhr.open("GET", url, true)
+            xhr.send()
+        }
+
+        const TX_URL = "https://devnet-gateway.elrond.com/transaction/"
+
+        const tx_hash = "''' + query['txHash'] + '''"
+        const url = TX_URL + "''' + query['txHash'] + '''?withResults=true"
+
+        document.body.onload = () => {
+            let loop = true
+
+            setInterval(() => {
+                if(!loop)
+                {
+                    return
+                }
+
+                if(tx_hash.length == 0)
+                {
+                    loop = false
+                }
+
+                fetch((response) => {
+                    const json = JSON.parse(response)
+                    if(
+                        json.data
+                        && json.data.transaction
+                        && json.data.transaction.smartContractResults
+                    )
+                    {
+                        const k = (json.data.transaction.smartContractResults[0].data[0] == '@') ? 0 : 1;
+                        const data = json.data.transaction.smartContractResults[k].data
+                        console.log(json)
+                        if(data.substr(0, 5).toLowerCase() != '@6f6b')
+                        {
+                            document.body.innerHTML = (
+                                "<p>Transaction failed. Please try again.</p>"
+                                + "<input type='button' value='Close page' onclick='javascript:window.close()'></input>"
+                            )
+                        }
+                        else
+                        {
+                            loop = false
+                            document.body.innerHTML = (
+                                "<p>Transaction OK</p>"
+                                + "<input type='button' value='Close page' onclick='javascript:window.close()'></input>"
+                            )
+                        }
+                    }
+                }, url)
+            }, 1000)
+        }
+    </script>
+</html>
+''')
+
+
