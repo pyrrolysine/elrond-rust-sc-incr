@@ -12,6 +12,8 @@ Responds with the current Unix time at execution when its method _tick_ is calle
 ### **monotonic_counter**
 You increase the counter by calling _inc_ and fetch the current value with _get_.
 
+###**nft-drawer-cgi**
+Collection of CGI scripts (one of which should be a web page instead) that allow one to draw pixelated images, publish them as NFTs and create collections.
 
 ## Payable
 
