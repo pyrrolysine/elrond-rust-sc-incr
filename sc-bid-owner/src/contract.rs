@@ -34,7 +34,7 @@ pub trait Contract {
     }
 
     #[endpoint]
-    fn min_price(&self) -> Self::BigUint {
+    fn get_top_bid(&self) -> Self::BigUint {
         self.price().get()
     }
 
@@ -60,6 +60,7 @@ pub trait Contract {
             self.token_id().set(&token);
             self.token_nonce().set(&nonce);
             self.price().set(&initial_price);
+            self.min_price().set(&initial_price);
             self.expiration().set(&expiration);
             self.auction_started().set(&true);
 
@@ -142,38 +143,42 @@ pub trait Contract {
                     max_k = k
                 }
             }
+            if winner_amount >= self.min_price().get() {
 
-            for k in 1..(self.bidders().len() + 1) {
-                let amount = self.amounts().get(k);
-                if amount != 0 && max_k != k {
-                    self.send().direct_egld(
-                        &self.bidders().get(k),
-                        &amount,
-                        &[]
-                    )
+                for k in 1..(self.bidders().len() + 1) {
+                    let amount = self.amounts().get(k);
+                    if amount != 0 && max_k != k {
+                        self.send().direct_egld(
+                            &self.bidders().get(k),
+                            &amount,
+                            &[]
+                        )
+                    }
                 }
+
+                self.send().direct(
+                    &self.bidders().get(max_k),
+                    &self.token_id().get(),
+                    self.token_nonce().get(),
+                    &Self::BigUint::from_bytes_be(&[1]),
+                    &[]
+                );
+
+                self.send().direct_egld(
+                    &self.blockchain().get_owner_address(),
+                    &winner_amount,
+                    &[]
+                );
+
+                self.auction_started().set(&false);
+
+                self.bidders().clear();
+                self.amounts().clear();
+
+                true
+            } else {
+                false
             }
-
-            self.send().direct(
-                &self.bidders().get(max_k),
-                &self.token_id().get(),
-                self.token_nonce().get(),
-                &Self::BigUint::from_bytes_be(&[1]),
-                &[]
-            );
-
-            self.send().direct_egld(
-                &self.blockchain().get_owner_address(),
-                &winner_amount,
-                &[]
-            );
-
-            self.auction_started().set(&false);
-
-            self.bidders().clear();
-            self.amounts().clear();
-
-            true
         } else {
             false
         }
@@ -194,6 +199,9 @@ pub trait Contract {
     #[storage_mapper("bids_level")]
     fn price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
+    #[storage_mapper("bids_level_init")]
+    fn min_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
     #[storage_mapper("auction_started")]
     fn auction_started(&self) -> SingleValueMapper<Self::Storage, bool>;
 
@@ -208,6 +216,9 @@ pub trait Contract {
     fn update_bid(&self, bidder: Address, amount: Self::BigUint) -> () {
         let mut found: bool = false;
 
+        // reset highest bid
+        self.price().set(&self.min_price().get());
+
         for k in 1..(self.bidders().len() + 1) {
             if self.bidders().get(k) == bidder {
                 found = true;
@@ -221,14 +232,23 @@ pub trait Contract {
                 // mutate to new bid
                 self.amounts().set(k, &amount);
 
-                break
+                // update highest bid
+                if self.amounts().get(k) > self.price().get() {
+                    self.price().set(&self.amounts().get(k))
+                }
             }
+
         }
 
         if !found {
             // register new bidder
             self.bidders().push(&bidder);
             self.amounts().push(&amount);
+
+            // update highest bid
+            if amount > self.price().get() {
+                self.price().set(&amount)
+            }
         }
     }
 }
